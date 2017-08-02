@@ -13,24 +13,113 @@ logger = create_logger(__name__)
 
 
 def createSession():
+	"""Return a requests' session object."""
+
 	with requests.Session() as session:
 
-		print('Session established')
+		logger.debug('Session established')
 		return session
 
-def login(session):
-	s = session
+def login(session, username, password):
+	"""
+	Return HTTP status code -> 200 if logged in correctly.
+
+	Keyword arguments:
+	session -- a requests' session object
+	username -- your username on quizarchief.be
+	password -- your password on quizarchief.be
+
+	"""
+
 	credentials = {
-	'name': 'KolonelKappa',
-	'pass': 'g9f6a4zp'
+		'name': username,
+		'pass': password
 	}
 
-	login_resp = session.post('https://www.quizarchief.be/login.php', data=credentials)
+	login_response = session.post('https://www.quizarchief.be/login.php', data=credentials)
 
-	print('Posting credentials resulted in status code: {status_code}'.format(status_code=login_resp.status_code))
-	return login_resp
+	login_status = login_response.status_code
+	logger.info(f'Your attempt to log in, resulted in HTTP status code: {loging_status}')
+
+	return login_status
 
 def construct_url(categorie, page):
+	"""
+	Return constructed url.
+
+	The url is composed of multiple parts:
+	https://www.quizarchief.be/categorie/cat/pn/aoqpp/so/pt
+
+	protocol: https://
+	subdomain: www
+	domain name: quizarchief.be
+	path: categorie
+
+	query and parameters:
+
+	cat -- category
+	    aardrijkskunde
+		architectuur-bouwkunde
+		binnenland
+		biologie-fauna
+		biologie-flora
+		economie-business
+		gastronomie-keuken-eten-drinken
+		film
+		filosofie
+		foto
+		games-ontspanning
+		geloof-religie-godsdienst
+		geneeskunde-menselijk-lichaam
+		geschiedenis
+		informatica-internet
+		kunst-cultuur
+		literatuur
+		media-showbizz
+		mode-lifestyle
+		muziek
+		mythologie
+		politiek-binnenland
+		politiek-buitenland
+		puzzels-raadsels-breinbrekers
+		sport
+		strips
+		taal
+		televisie
+		varia
+		wetenschap-techniek
+
+	pn -- page number
+	
+	aoqpp -- amount of questions per page:
+	    1: 1 vraag
+	    3: 3 vragen
+	    5: 5 vragen
+	    10: 10 vragen
+	    15: 15 vragen
+	    20: 20 vragen
+
+	so -- sorting order
+	    1: van nieuw naar oud
+	    2: van oud naar nieuw
+	    3: makkelijkste eerst
+	    4: moeilijkste eerst
+	    5: heel makkelijk
+	    6: makkelijk
+	    7: eerder makkelijk
+	    8: eerder moeilijk
+	    9: moeilijk
+	    10: heel moeilijk
+	    11: meeste likes
+	
+	pt -- page template
+		0: base html page where questions are set upon
+
+
+	e.g. https://www.quizarchief.be/categorie/film/807/10/1/0
+	retrieves pagenumber 807 for category film, with 10 questions per page, sorted on descending datetime
+
+	"""
 	categorie = categorie
 	page = page
 
