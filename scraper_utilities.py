@@ -24,7 +24,7 @@ def login(session, username, password):
 	"""
 	Return HTTP status code -> 200 if logged in correctly.
 
-	Keyword arguments:
+	Arguments:
 	session -- a requests' session object
 	username -- your username on quizarchief.be
 	password -- your password on quizarchief.be
@@ -39,7 +39,7 @@ def login(session, username, password):
 	login_response = session.post('https://www.quizarchief.be/login.php', data=credentials)
 
 	login_status = login_response.status_code
-	logger.info(f'Your attempt to log in, resulted in HTTP status code: {loging_status}')
+	logger.info(f'Your attempt to log in, resulted in HTTP status code: {login_status}')
 
 	return login_status
 
@@ -47,7 +47,7 @@ def construct_url(categorie, page):
 	"""
 	Return constructed url.
 
-	Keyword arguments:
+	Arguments:
 	categorie -- a thematic category, for a list of all available options, see below
 	page -- pagenumber
 
@@ -131,17 +131,23 @@ def construct_url(categorie, page):
 	return url
 
 def get_questionpage(url, session):
-	s = session
-	url = url
+	"""
+	Return questionpage.
 
-	questionpage = s.get(url)
+	Arguments:
+	url -- a constructed quizarchief url
+	session -- a request's session object
+	"""
+
+	questionpage = session.get(url)
 	questionpage.encoding = 'utf-8'
 
-	print('Questionpage was fetched with status code: {status_code}'.format(status_code=questionpage.status_code))
+	logger.info(f'Questionpage was fetched with status code: {questionpage.status_code}')
+	
 	return questionpage
 
-def make_soup(page):
-	questionpage = page
+def make_soup(questionpage):
+	"""Return constructed BeautifulSoup object, from provided questionpage"""
 
 	soup = BeautifulSoup(questionpage.content, 'html5lib')
 
@@ -149,27 +155,51 @@ def make_soup(page):
 	for br in soup.find_all('br'):
 		br.extract()
 
-	print('Soup is very hot, bon appetit!')
+	logger.debug('Soup is very hot, bon appetit! :)')
+	
 	return soup
 
 def find_all_questionrows(soup):
+	"""
+	Return questionrows.
+
+	Arguments:
+	soup -- a BeautifulSoup object
+
+	Every question is embedded in a questionrow, which is a div-element, with an id that is composed out of two parts:
+	vragenrij_ + question_number
+
+	A questionrow contains other information besides: question_text, answer_text, image and tags.
+	e.g. information about the name/date/... of the quiz the question belongs to
+	"""
+
 	vragenrij_regex = re.compile('vragenrij_\d+')
 	questionrows = soup.find_all('div', {'id': vragenrij_regex})
 
-	print('There were {questionrows_amount} questionrows found on the given page.'.format(questionrows_amount=len(questionrows)))
+	logger.debug(f'There are {len(questionrows)} questionrows found on the given page.')
 	return questionrows
 
-def find_question_id(questionrow):
+def find_question_number(questionrow):
+	"""
+	Extract question_number for a given questionrow.
+	
+	A questionrow is a div with an id, composed out of two parts:
+	vragenrij_ + question_number
+
+	e.g. vragenrij_82096
+	We want to extract the question_number, here: 82096.
+	"""
+
 	dirty_question_number = questionrow.get('id')
 	clean_question_number = re.search('(?:vragenrij_)(\d+)', dirty_question_number).group(1)
 
-	question_id = clean_question_number
-	return question_id
+	question_number = clean_question_number
+	return question_number
 
-def find_question(questionrow, question_id):
+def find_question(questionrow, question_number):
 	question = ""
 	questionrow = questionrow
-	question_id = question_id
+	question_number = question_number
 
 	try:
 			#if there is no tag, it is directly under the div, so contents[0]
@@ -195,7 +225,7 @@ def find_question(questionrow, question_id):
 			return question
 
 	except Exception as e:
-		print("An exception occured while parsing question with id: {question_id}".format(question_id=question_id))
+		print("An exception occured while parsing question with id: {question_number}".format(question_number=question_number))
 		print("With exception message: \n {exception_message}".format(exception_message=e))
 		
 		return question
@@ -220,7 +250,7 @@ def find_tags(questionrow):
 		return tags
 
 	except Exception as e:
-		print("An exception occured while parsing tags for question with id: {question_id}".format(question_id=question_id))
+		print("An exception occured while parsing tags for question with id: {question_number}".format(question_number=question_number))
 		print("With exception message: \n {exception_message}".format(exception_message=e))
 		
 		return tags
@@ -325,14 +355,14 @@ def find_image(questionrow, categorie, session):
 	return image_filename
 
 
-def find_answer(questionrow, question_id, session):
+def find_answer(questionrow, question_number, session):
 	answer = ""
 	questionrow = questionrow
-	question_id = question_id
+	question_number = question_number
 	s = session
 
 	try:
-		answer_url = 'https://www.quizarchief.be/beantwoordevragen.php?vraagid={question_id}&page=categorie'.format(question_id=question_id)
+		answer_url = 'https://www.quizarchief.be/beantwoordevragen.php?vraagid={question_number}&page=categorie'.format(question_number=question_number)
 		answer_page = s.get(answer_url)
 		answer_page.encoding = 'utf-8'
 
@@ -347,27 +377,27 @@ def find_answer(questionrow, question_id, session):
 		return answer
 
 	except Exception as e:
-		print("An exception occured while parsing answer for question with id: {question_id}".format(question_id=question_id))
+		print("An exception occured while parsing answer for question with id: {question_number}".format(question_number=question_number))
 		print("With exception message: \n {exception_message}".format(exception_message=e))
 		
 		return answer
 		
 		pass
 
-def write_to_databse(cursor, question_id, question, answer, image):
+def write_to_databse(cursor, question_number, question, answer, image):
 	cursor = cursor
-	question_id = question_id
+	question_number = question_number
 	question = question
 	answer = answer
 	image = image
 
-	question_row = (question_id, question, answer, image)
+	question_row = (question_number, question, answer, image)
 
 	try:
-		cursor.execute('INSERT OR REPLACE INTO QUESTION(Question_ID, Question, Answer, Image) VALUES (?,?,?,?)', question_row)
+		cursor.execute('INSERT OR REPLACE INTO QUESTION(question_number, Question, Answer, Image) VALUES (?,?,?,?)', question_row)
 
 	except Exception as e:
-		print("An exception occured while writing the answer to the database for question with id: {question_id}".format(question_id=question_id))
+		print("An exception occured while writing the answer to the database for question with id: {question_number}".format(question_number=question_number))
 		print("With exception message: \n {exception_message}".format(exception_message=e))
 		pass	
 

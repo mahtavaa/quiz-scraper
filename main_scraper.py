@@ -1,5 +1,5 @@
 from database_interaction import make_connection, create_cursor, insert_question, get_tagid, insert_tag, insert_question_tag, insert_image, insert_category, get_categoryid
-from scraper_utilities import createSession, login, construct_url, get_questionpage, make_soup, find_all_questionrows, find_question_id, find_question, find_tags, find_image, find_answer, sleep_randomly
+from scraper_utilities import createSession, login, construct_url, get_questionpage, make_soup, find_all_questionrows, find_question_number, find_question, find_tags, find_image, find_answer, sleep_randomly
 import logging
 
 logging.basicConfig(filename='quizlog.log', level=logging.DEBUG, format='%(asctime)s::%(levelname)s::%(message)s')
@@ -44,7 +44,7 @@ for pagenr in range(FROM_PAGE, TO_PAGE):
 			category_id = category_id[0]
 
 		
-		question_number = find_question_id(questionrow)
+		question_number = find_question_number(questionrow)
 		question_text = find_question(questionrow, question_number)
 		answer_text = find_answer(questionrow, question_number, session)
 
