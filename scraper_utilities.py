@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from logger_setup import create_logger
 import os
 import random
 import re
@@ -7,10 +8,7 @@ import shutil
 import sqlite3
 import time
 
-from logger_setup import create_logger
-
 logger = create_logger(__name__)
-
 
 def createSession():
 	"""Return a requests' session object."""
@@ -240,7 +238,7 @@ def find_question(questionrow, question_number):
 		logger.info(f'The question_text for question nr. {question_number}: \n {question_text}')
 
 	except Exception as e:
-		logger.debug(f'An unexpected exception occured while parsing question with id: {question_number}, with exception message: \n {e}')
+		logger.error(f'An unexpected exception occured while parsing question with id: {question_number}, with exception message: \n {e}')
 		
 	finally:
 		return question_text
@@ -282,7 +280,6 @@ def find_tags(questionrow, question_number):
 	finally:
 		return tags
 
-
 def find_image(questionrow, categorie, session):
 	"""
 	if image: Return image_filename
@@ -297,14 +294,10 @@ def find_image(questionrow, categorie, session):
 	"""
 
 	class ImageNotFound(Exception):
-		"""
-		Exception which handles the lack of an image in a questionrow.
-		"""
+		"""Exception which handles the lack of an image in a questionrow."""
 
 	class YoutubeInsteadOfImage(Exception):
-		"""
-		This exception should be raised when the embedded visual is a youtube video and NOT an image.
-		"""
+		"""This exception should be raised when the embedded visual is a youtube video and NOT an image."""
 
 	try:
 		question_image_centerdiv = questionrow.find('center')
@@ -377,57 +370,49 @@ def find_image(questionrow, categorie, session):
 
 	return image_filename
 
-
 def find_answer(questionrow, question_number, session):
-	answer = ""
-	questionrow = questionrow
-	question_number = question_number
-	s = session
+	"""
+	Return answer_text.
+	Return '' (empty string) if no answer_text could be extracted
+
+	To get the answer for a given question, quizarchief performs an xhr-request to the following url:
+	https://www.quizarchief.be/beantwoordevragen.php?vraagid={question_number}&page=categorie
+	"""
+
+	answer_text = ''
 
 	try:
-		answer_url = 'https://www.quizarchief.be/beantwoordevragen.php?vraagid={question_number}&page=categorie'.format(question_number=question_number)
-		answer_page = s.get(answer_url)
+		answer_url = f'https://www.quizarchief.be/beantwoordevragen.php?vraagid={question_number}&page=categorie'
+		answer_page = session.get(answer_url)
 		answer_page.encoding = 'utf-8'
 
 		soup = BeautifulSoup(answer_page.content, 'html5lib')
 
-		answer = soup.find('b').text.strip()
+		answer_text = soup.find('b').text.strip()
 
-		print('Answer:')
-		print(answer)
-		print('\n')
-
-		return answer
+		logger.info(f'Answer found for question_number {question_number}: \n {answer_text}')
 
 	except Exception as e:
-		print("An exception occured while parsing answer for question with id: {question_number}".format(question_number=question_number))
-		print("With exception message: \n {exception_message}".format(exception_message=e))
+		logger.error(f'An exception occured while parsing answer for question with id: {question_number}, with exception message: \n {e}')
 		
-		return answer
-		
-		pass
-
-def write_to_databse(cursor, question_number, question, answer, image):
-	cursor = cursor
-	question_number = question_number
-	question = question
-	answer = answer
-	image = image
-
-	question_row = (question_number, question, answer, image)
-
-	try:
-		cursor.execute('INSERT OR REPLACE INTO QUESTION(question_number, Question, Answer, Image) VALUES (?,?,?,?)', question_row)
-
-	except Exception as e:
-		print("An exception occured while writing the answer to the database for question with id: {question_number}".format(question_number=question_number))
-		print("With exception message: \n {exception_message}".format(exception_message=e))
-		pass	
+	finally:
+		return answer_text
 
 def sleep_randomly(max_sleeptime):
-	max_sleeptime = max_sleeptime
+	"""
+	Return a random pause in seconds of maximum max_sleeptime.
 
-	# The method sleep() suspends execution for the given number of seconds.
-	seconds = random.randint(1, max_sleeptime)
-	print('I will be sleeping for {seconds} seconds. :)'.format(seconds=seconds))
+	Arguments:
+	max_sleeptime -- the maximum #seconds you want to wait before fetching a new question
+
+	To prevent overloading of the server, this method provides a way to pause the execution for a given number of seconds.
+	To make the interaction seem more human, we add some randomness.
+	"""
+
+	#The method sleep() suspends execution for the given number of seconds.
+	sleeptime = random.randint(1, max_sleeptime)
+	logger.info(f'I will be sleeping for {sleeptime} seconds. :)')
+	
 	time.sleep(seconds)
+
+	return sleeptime
