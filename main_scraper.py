@@ -63,7 +63,7 @@ for pagenr in range(FROM_PAGE, TO_PAGE):
 		else:
 			logging.debug("No image found for question with number: {question_number}".format(question_number=question_number))
 		
-		tag_names = find_tags(questionrow)
+		tag_names = find_tags(questionrow, question_number)
 		tag_id = ''
 		
 		if len(tag_names) > 0:

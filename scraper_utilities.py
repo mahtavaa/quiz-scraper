@@ -202,6 +202,24 @@ def find_question(questionrow, question_number):
 	"""
 	Return question_text.
 	Return '' (empty string) if no question_text could be extracted.
+
+	If there are tags available, the html structure is as follows:
+
+	<div id="vragenrij_81790">
+		<div class="vragenrij">
+			<span>
+				<a href="tags/cycling">cycling</a>
+				<a href="tags/sporty">sporty</a>
+			</span>
+			We zijn op zoek naar een de beste wielrenner ter wereld...
+		</div>
+	</div>
+
+	However, sometimes no tags are provided.
+
+	The question_text itself is not wrapped in any html tag, which is why we will rely on BeautifulSoup.contents[]
+	this is more prone to changes in the mark-up & thus should be changed to a tag-finder instead, 
+	in case the website would provide a tag-wrapper in the future.
 	"""
 	question_text = ''
 
@@ -213,7 +231,7 @@ def find_question(questionrow, question_number):
 		tag_regex = re.compile('tag_\d+')
 		
 		if len(questionrow.find_all('a', {'id': tag_regex})) > 0:
-			#if there is no tag, it is directly under the div, so contents[0]
+			#if there are tags available, apply contents[1]
 			question_text = question_div.contents[1].encode('utf-8').strip()
 		else:
 			#if there is no tag, it is directly under the div, so contents[0]
@@ -227,45 +245,55 @@ def find_question(questionrow, question_number):
 	finally:
 		return question_text
 
-def find_tags(questionrow):
-	questionrow = questionrow
+def find_tags(questionrow, question_number):
+	"""
+	Return tags as a list.
+	Return [] (empty list) if none are provided.
+
+	If there are tags available, they are positioned as follows:
+
+	<div id="vragenrij_81790">
+		<div class="vragenrij">
+			<span>
+				<a href="tags/cycling">cycling</a>
+				<a href="tags/sporty">sporty</a>
+			</span>
+			We zijn op zoek naar een de beste wielrenner ter wereld...
+		</div>
+	</div>
+
+	Here, find_tags will return ['cycling', 'sporty']
+	"""
+
 	tags = []
 
 	try:
-		#if there is no tag, it is directly under the div, so contents[0]
 		tag_regex = re.compile('tag_\d+')
 
 		taglinks = questionrow.find_all('a', {'id': tag_regex})
 		tags = [tag.text for tag in taglinks]
 
-		print('Tags:')
-		print(tags)
-		print('\n')
+		logger.info(f'Tags for question_number {question_number}: {tags}')
 
-		return tags
 
 	except Exception as e:
-		print("An exception occured while parsing tags for question with id: {question_number}".format(question_number=question_number))
-		print("With exception message: \n {exception_message}".format(exception_message=e))
-		
+		logger.error(f'An exception occured while parsing tags for question_number: {question_number}, with exception message: \n {e}')
+
+	finally:
 		return tags
 
-		pass	
-	
-	
 
 def find_image(questionrow, categorie, session):
 	"""
-	if image: find_image(questionrow, categorie, session) -> image_filename
-	+ downloads the image to a folder relatively located at ./{categorie}/
+	if image: Return image_filename
+	+ Download the image to a folder relatively located at ./{categorie}/
 
-	if no image: find_image(questionrow, categorie, session) -> None
+	if no image: Return None
 
 	if there is an image accompanying the question, this function will return the image_filename
 	the image_filename is the combination of the question_number with an extension
 	this extension can take multiple formats (jpg, jpeg, png, ...) & should be saved accordingly
 
-	if there is no image, find_image() returns None
 	"""
 
 	class ImageNotFound(Exception):
