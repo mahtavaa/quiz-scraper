@@ -47,6 +47,10 @@ def construct_url(categorie, page):
 	"""
 	Return constructed url.
 
+	Keyword arguments:
+	categorie -- a thematic category, for a list of all available options, see below
+	page -- pagenumber
+
 	The url is composed of multiple parts:
 	https://www.quizarchief.be/categorie/cat/pn/aoqpp/so/pt
 
@@ -89,7 +93,7 @@ def construct_url(categorie, page):
 		varia
 		wetenschap-techniek
 
-	pn -- page number
+	pn -- pagenumber
 	
 	aoqpp -- amount of questions per page:
 	    1: 1 vraag
@@ -120,12 +124,10 @@ def construct_url(categorie, page):
 	retrieves pagenumber 807 for category film, with 10 questions per page, sorted on descending datetime
 
 	"""
-	categorie = categorie
-	page = page
 
-	url = 'https://www.quizarchief.be/categorie/{categorie}/{page}/20/1/0'.format(categorie=categorie, page=page)
+	url = f'https://www.quizarchief.be/categorie/{categorie}/{page}/20/1/0'
+	logger.debug(f'url constructed as: \n {url}')
 	
-	print('url constructed as: \n {url}'.format(url=url))
 	return url
 
 def get_questionpage(url, session):

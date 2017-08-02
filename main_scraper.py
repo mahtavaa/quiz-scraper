@@ -9,12 +9,18 @@ CATEGORIE = 'sport'
 FROM_PAGE = 1
 TO_PAGE = 2
 SLEEP_TIME = 20
+CREDENTIALS = {
+	'username': 'KolonelKappa',
+	'password': 'g9f6a4zp'
+}
 
 connection = make_connection(DATABASE_URL)
 cursor = create_cursor(connection)
 
 session = createSession()
-login(session)
+
+
+login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.get('password', None))
 
 for pagenr in range(FROM_PAGE, TO_PAGE):
 	
