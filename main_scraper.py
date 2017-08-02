@@ -10,8 +10,8 @@ FROM_PAGE = 1
 TO_PAGE = 328
 SLEEP_TIME = 20
 CREDENTIALS = {
-	'username': 'KolonelKappa',
-	'password': 'g9f6a4zp'
+	'username': '',
+	'password': ''
 }
 
 connection = make_connection(DATABASE_URL)
