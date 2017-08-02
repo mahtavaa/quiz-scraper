@@ -194,43 +194,38 @@ def find_question_number(questionrow):
 	clean_question_number = re.search('(?:vragenrij_)(\d+)', dirty_question_number).group(1)
 
 	question_number = clean_question_number
+	logger.debug(f'The question_number that was extracted for the questionrow is: {question_number}.')
+
 	return question_number
 
 def find_question(questionrow, question_number):
-	question = ""
-	questionrow = questionrow
-	question_number = question_number
+	"""
+	Return question_text.
+	Return '' (empty string) if no question_text could be extracted.
+	"""
+	question_text = ''
 
 	try:
+		question_div = questionrow.find('div', {'class': 'vragenrij'})
+		
+		#sometimes no tags are provided, then the question_text moves up in the html structure
+		#first check if there are tags
+		tag_regex = re.compile('tag_\d+')
+		
+		if len(questionrow.find_all('a', {'id': tag_regex})) > 0:
 			#if there is no tag, it is directly under the div, so contents[0]
-			tag_regex = re.compile('tag_\d+')
+			question_text = question_div.contents[1].encode('utf-8').strip()
+		else:
+			#if there is no tag, it is directly under the div, so contents[0]
+			question_text = question_div.contents[0].encode('utf-8').strip()
 
-			if len(questionrow.find_all('a', {'id': tag_regex})) > 0:
-
-				question_div = questionrow.find('div', {'class': 'vragenrij'})
-				question = question_div.contents[1].encode('utf-8').strip()
-				
-				print('Question: \n')
-				print(question)
-				print('\n')
-
-			else:
-				question_div = questionrow.find('div', {'class': 'vragenrij'})
-				question = question_div.contents[0].encode('utf-8').strip()
-				
-				print('Question:')
-				print(question)
-				print('\n')
-
-			return question
+		logger.info(f'The question_text for question nr. {question_number}: \n {question_text}')
 
 	except Exception as e:
-		print("An exception occured while parsing question with id: {question_number}".format(question_number=question_number))
-		print("With exception message: \n {exception_message}".format(exception_message=e))
+		logger.debug(f'An unexpected exception occured while parsing question with id: {question_number}, with exception message: \n {e}')
 		
-		return question
-
-		pass	
+	finally:
+		return question_text
 
 def find_tags(questionrow):
 	questionrow = questionrow
