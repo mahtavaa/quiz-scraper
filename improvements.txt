@@ -1,0 +1,11 @@
+- replace all print() statements with logging, make sure you know which function the logs are originating from
+- add docstrings
+- uniform use of imagenumber/id/...
+- is er een reden wrm die print() pas helemaal na het einde van een pagina op terminal komt?
+- include in log:
+--> sleep time
+--> which page is parsed
+--> which questionnumber is currently handled
+--> database write completed
+
+- make a fancy load bar (#questions done /questions on page x)
