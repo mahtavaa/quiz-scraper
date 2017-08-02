@@ -1,9 +1,6 @@
 import os
 import sqlite3
 
-# only for faster development, not for production!
-os.remove('quizarchief.sqlite')
-
 connection = sqlite3.connect('quizarchief.sqlite')
 cursor = connection.cursor()
 
@@ -34,7 +31,6 @@ cursor.execute('''
 		tag_name TEXT
 	);
 ''')
-
 
 cursor.execute('''
 	CREATE TABLE question_tag (

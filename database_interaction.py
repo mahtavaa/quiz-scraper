@@ -81,3 +81,14 @@ def get_categoryid(category_name, cursor):
 
 	category_id = cursor.fetchone()
 	return category_id
+
+def get_questions_with_image_for_category(category_id, cursor):
+
+	cursor.execute('''
+		SELECT *
+		FROM question q LEFT JOIN image i ON q.question_id = i.question_id
+		WHERE q.category_id = ?
+	''', (category_id,))
+
+	questions_with_image = cursor.fetchall()
+	return questions_with_image

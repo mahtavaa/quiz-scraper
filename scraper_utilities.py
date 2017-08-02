@@ -37,7 +37,7 @@ def login(session, username, password):
 	login_response = session.post('https://www.quizarchief.be/login.php', data=credentials)
 
 	login_status = login_response.status_code
-	logger.info(f'Your attempt to log in, resulted in HTTP status code: {login_status}')
+	logger.debug(f'Your attempt to log in, resulted in HTTP status code: {login_status}')
 
 	return login_status
 
@@ -101,6 +101,8 @@ def construct_url(categorie, page):
 	    15: 15 vragen
 	    20: 20 vragen
 
+	    (note that choosing a value that is not in this predefined list, will NOT work)
+
 	so -- sorting order
 	    1: van nieuw naar oud
 	    2: van oud naar nieuw
@@ -140,7 +142,7 @@ def get_questionpage(url, session):
 	questionpage = session.get(url)
 	questionpage.encoding = 'utf-8'
 
-	logger.info(f'Questionpage was fetched with status code: {questionpage.status_code}')
+	logger.debug(f'Questionpage was fetched with status code: {questionpage.status_code}')
 	
 	return questionpage
 
@@ -280,7 +282,7 @@ def find_tags(questionrow, question_number):
 	finally:
 		return tags
 
-def find_image(questionrow, categorie, session):
+def find_image(questionrow, question_number, categorie, session):
 	"""
 	if image: Return image_filename
 	+ Download the image to a folder relatively located at ./{categorie}/
@@ -311,15 +313,15 @@ def find_image(questionrow, categorie, session):
 			raise YoutubeInsteadOfImage
 
 	except ImageNotFound:
-		logger.info(f'Questionrow: {questionrow}. No image was found for this questionrow.')
+		logger.info(f'Question_number: {question_number}. No image was found for this questionrow.')
 		return None
 
 	except YoutubeInsteadOfImage:
-		logger.info(f'Questionrow: {questionrow}. The embedded visual is a youtube link, not an image.')
+		logger.info(f'Question_number: {question_number}. The embedded visual is a youtube link, not an image.')
 		return None
 
 	except Exception as e:
-		logger.error(f'Questionrow: {questionrow}. An unexpected exception occurred while parsing the embedded visual with the following exception message: \n {e}.')
+		logger.error(f'Question_number: {question_number}. An unexpected exception occurred while parsing the embedded visual with the following exception message: \n {e}.')
 		return None
 
 	"""
@@ -411,8 +413,8 @@ def sleep_randomly(max_sleeptime):
 
 	#The method sleep() suspends execution for the given number of seconds.
 	sleeptime = random.randint(1, max_sleeptime)
-	logger.info(f'I will be sleeping for {sleeptime} seconds. :)')
+	logger.info(f'I will be sleeping for {sleeptime} seconds. :) \n')
 	
-	time.sleep(seconds)
+	time.sleep(sleeptime)
 
 	return sleeptime

@@ -9,3 +9,31 @@
 --> database write completed
 
 - make a fancy load bar (#questions done /questions on page x)
+
+- add youtube visual support
+
+- add anki-notes extractor
+
+- maybe seperate finding image & downloading it
+
+- maybe add some more http headers when establishing session (more human-like)
+
+- hoe ervoor zorgen dat enkel nieuwe vragen (die nog niet in database zitten) gedownload worden
+
+
+- properdere log
+>> als vraag is afgerond \n toevoegen
+>> voor console ander format --> geen asctime of hooguit uur:minuut 
+
+
+- scraper slaapt nu ook na allerlaatste vraag, maarbon normaliter fetch je dan direct een andere pagina, dus niet zo erg
+
+- wat meer logging voorzien voor databasefunctionaliteit
+- documentatie voor databasegedeelte
+
+- max #pagina's scrapen --> get_total_pages()
+
+- command line interface met argparse
+
+- zie zeker dat je die os.remove() in database_initialization wegwerkt, bv. door check of database al bestaat
+want dat gaat altijd error geven bij initializatie
