@@ -35,7 +35,7 @@ with open(EXPORT_FILE, 'a', newline='', encoding='utf-8') as csv_file:
 
 	"""
 	questions_with_image_for_category lay-out:
-	(question_id, question_number, question_text, answer_text, category_id, img_id, img_filename, question_)
+	(question_id, question_number, question_text, answer_text, category_id, img_id, img_filename, question_id)
 
 	CREATE TABLE question (
 		question_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

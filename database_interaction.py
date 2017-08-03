@@ -82,6 +82,17 @@ def get_categoryid(category_name, cursor):
 	category_id = cursor.fetchone()
 	return category_id
 
+def get_questionid(question_number, cursor):
+
+	cursor.execute('''
+		SELECT question_id
+		FROM question
+		WHERE question_number = ?
+	''', (question_number,))
+
+	question_id = cursor.fetchone()
+	return question_id
+
 def get_questions_with_image_for_category(category_id, cursor):
 
 	cursor.execute('''
