@@ -400,7 +400,7 @@ def find_answer(questionrow, question_number, session):
 	finally:
 		return answer_text
 
-def sleep_randomly(max_sleeptime):
+def sleep_randomly(max_sleeptime, min_sleeptime=1):
 	"""
 	Return a random pause in seconds of maximum max_sleeptime.
 
@@ -412,7 +412,7 @@ def sleep_randomly(max_sleeptime):
 	"""
 
 	#The method sleep() suspends execution for the given number of seconds.
-	sleeptime = random.randint(1, max_sleeptime)
+	sleeptime = random.randint(min_sleeptime, max_sleeptime)
 	logger.info(f'I will be sleeping for {sleeptime} seconds. :) \n')
 	
 	time.sleep(sleeptime)

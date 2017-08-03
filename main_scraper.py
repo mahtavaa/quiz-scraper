@@ -1,18 +1,16 @@
-from database_interaction import make_connection, create_cursor, insert_question, get_tagid, insert_tag, insert_question_tag, insert_image, insert_category, get_categoryid
+from database_interaction import make_connection, create_cursor, insert_question, get_tagid, insert_tag, insert_question_tag, insert_image, insert_category, get_categoryid, get_questionid
 from scraper_utilities import createSession, login, construct_url, get_questionpage, make_soup, find_all_questionrows, find_question_number, find_question, find_tags, find_image, find_answer, sleep_randomly
 from logger_setup import create_logger
+import settings
 
 logger = create_logger(__name__)
 
-DATABASE_URL = 'quizarchief.sqlite'
-CATEGORIE = 'kunst-cultuur'
-FROM_PAGE = 1
-TO_PAGE = 328
-SLEEP_TIME = 20
-CREDENTIALS = {
-	'username': '',
-	'password': ''
-}
+DATABASE_URL = settings.DATABASE_URL
+CATEGORY = settings.CATEGORY
+FROM_PAGE = settings.FROM_PAGE
+TO_PAGE = settings.TO_PAGE
+SLEEP_TIME = settings.SLEEP_TIME
+CREDENTIALS = settings.CREDENTIALS
 
 connection = make_connection(DATABASE_URL)
 cursor = create_cursor(connection)
@@ -22,7 +20,7 @@ login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.
 
 for pagenr in range(FROM_PAGE, TO_PAGE):
 	
-	url = construct_url(CATEGORIE, pagenr)
+	url = construct_url(CATEGORY, pagenr)
 	
 	logger.info(f'Fetching results for page {pagenr}. \n')
 
@@ -31,8 +29,28 @@ for pagenr in range(FROM_PAGE, TO_PAGE):
 	questionrows = find_all_questionrows(soup)
 
 	for i, questionrow in enumerate(questionrows):
+		
+		question_number = find_question_number(questionrow)
 
-		category_name = CATEGORIE
+		is_already_in_database = get_questionid(question_number, cursor)
+		
+		if is_already_in_database:
+			logger.info(f'Question {question_number} is already in database.')
+			
+			if settings.ONLY_NEW == True:
+				logger.info(f'You set settings.ONLY_NEW to True, so downloading will stop.')
+				
+				# For details about ONLY_NEW, see settings.py
+				break
+
+			# Take a sleeptime of 0 or 1 seconds between the parsing of each question
+			# by doing so, it will take 10 seconds on average for 1 page which is still reasonable
+			# otherwise: in scenario you already downloaded the first 100 pages, but need page 101
+			# the 100 pages would be asked without a pause (or only with pause = time to retrieve question_id * 20)
+			sleep_randomly(1, 0)
+			continue
+
+		category_name = CATEGORY
 		category_id = get_categoryid(category_name, cursor)
 
 		if not category_id:
@@ -42,7 +60,6 @@ for pagenr in range(FROM_PAGE, TO_PAGE):
 			category_id = category_id[0]
 
 		
-		question_number = find_question_number(questionrow)
 		question_text = find_question(questionrow, question_number)
 		answer_text = find_answer(questionrow, question_number, session)
 
@@ -76,5 +93,16 @@ for pagenr in range(FROM_PAGE, TO_PAGE):
 		logger.info(f'All information for question_number {question_number} was written to the database. \n')
 
 		sleep_randomly(SLEEP_TIME)
+
+	# for the following trick, check Markus Janderot's answer on StackOverflow
+	# https://stackoverflow.com/questions/653509/breaking-out-of-nested-loops
+	#
+	# basically, if the question_number is already in the database && settings.ONLY_NEW = True
+	# we want to stop all operations of the scraper
+	# if settings.ONLY_NEW = False, the loop continues digging for more questions
+	else:
+		continue # executed when inner-for-loop executes without breaking
+
+	break # if else-clause is not triggered, i.e. in case of breaking out of innerloop
 
 connection.close()
