@@ -7,8 +7,8 @@ username	valid username for https://www.quizarchief.be
 password	valid password for https://www.quizarchief.be
 """
 CREDENTIALS = {
-	'username': 'KolonelKappa',
-	'password': 'g9f6a4zp'
+	'username': '',
+	'password': ''
 }
 
 DATABASE_URL = 'quizarchief.sqlite'
