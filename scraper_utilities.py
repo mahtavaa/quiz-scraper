@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from logger_setup import create_logger
+import math
 import os
 import random
 import re
@@ -40,6 +41,104 @@ def login(session, username, password):
 	logger.debug(f'Your attempt to log in, resulted in HTTP status code: {login_status}')
 
 	return login_status
+
+
+def create_category_dictionary():
+	"""
+	Return a dicionary consisting of:
+	    keys: category_identifier
+	    values: number of pages for category_identifier
+	"""
+	url = 'https://www.quizarchief.be/categorie/'
+
+	page = requests.get(url)
+	soup = BeautifulSoup(page.content, 'html5lib')
+
+	category_dict = {}
+
+
+	category_overview = soup.find('div', {'class': 'col-lg-8'})
+	all_categories = category_overview.find_all('div', {'style': 'padding:8px;float:left;width:250px;'})
+
+	# category:
+	# 
+	# <div style="padding:8px;float:left;width:250px;">
+	# 	<a href="categorie/architectuur-bouwkunde">
+	# 		<big>Architectuur</big>
+	# 	</a>
+	# 	 (1447)
+	# </div>
+
+	for category in all_categories:
+
+		category_name = category.find('a').find('big').text
+		category_identifier = category.find('a').get('href')[10:]
+		
+		category_question_amount_dirty = category.contents[1]
+		
+		number_pattern = re.compile('(?P<question_amount>\d+)')
+		category_question_amount = re.search(number_pattern, category_question_amount_dirty).group('question_amount')
+
+		category_dict[category_identifier] = int(category_question_amount)
+
+		logger.debug(f'#questions for {category_name} ({category_identifier}): {category_question_amount}')
+
+	return category_dict
+
+
+def is_valid_category(category, category_dict):
+	""""Check whether provided category is indeed one of the possible categories."""
+	is_valid = False
+
+	if category in category_dict.keys():
+		is_valid = True
+		logger.debug('Provided category is indeed one of the possible categories.')
+
+	return is_valid
+
+
+def compute_pages_for_category(category, category_dict, questions_per_page=20):
+	"""
+	Return the maximum amount of pages that can be retrieved for a category
+	say there are 250 questions for a category
+
+	e.g. 
+	category_dict = {'literatuur': 6806}
+	'literatuur' has 6806 registered questions 
+	if there are 20 questions per page -> 341  pages
+	== ceiling(6806/20)
+	"""
+	
+	number_of_questions_for_category = category_dict.get(category, 0)
+	total_pages_for_category = math.ceil((number_of_questions_for_category/questions_per_page))
+	logger.debug(f'For category {category}, there can be {total_pages_for_category} retrieved.')
+
+	return total_pages_for_category
+
+
+def validate_end_page(end_page, pages_for_category):
+	"""
+	Ensure that provided end_page does not exceed the possible range of pages that can be retrieved.
+	If the provided number of pages to be scraped is larger than possible, set it equal to the maximum amount.
+	"""
+
+	if end_page == 'ALL':
+		validated_end_page = pages_for_category
+
+	else:
+		validated_end_page = min(end_page, pages_for_category)
+
+	return validated_end_page
+
+
+def validate_start_page(start_page, end_page):
+	"""Return end_page if start_page is higher than the end_page."""
+
+	if start_page > end_page:
+		return end_page
+
+	return start_page
+
 
 def construct_url(categorie, page):
 	"""
