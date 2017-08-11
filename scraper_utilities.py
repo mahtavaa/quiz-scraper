@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from logger_setup import create_logger
+from settings import CREDENTIALS
 import math
 import os
 import random
@@ -458,8 +459,8 @@ def find_image(questionrow, question_number, categorie, session):
 	logger.debug(f'image_filename composed: {image_filename}')
 
 	#make a folder to which the image will be downloaded
-	directory = './{categorie}/'.format(categorie=categorie)
-	filepath = os.path.join(directory, image_filename)
+	directory = f'./{categorie}/'
+	filepath = ''.join((directory, image_filename))
 
 	os.makedirs(directory, exist_ok=True)
 
@@ -499,6 +500,87 @@ def find_answer(question_number, session):
 	finally:
 		return answer_text
 
+
+def find_quiz_info(questionrow, question_number):
+	"""
+	Return Quiz Information Dictionary
+	{
+		'quiz_name': '<quizname>',
+		'quiz_year': '<year>',
+		'quiz_url': '<quiz url>',
+		'quiz_roundinfo': '<round, questionnumber (in round)>',
+		'quiz_organiser': '<quiz organiser/designer>'
+	}
+
+	Each questionrow -even for non-organized quizzes, like photoquizzes-
+	includes some information about the quiz:
+		- quizname
+		- year
+		- round, questionnumber (in round)
+		- organiser/designer
+
+	e.g.
+
+	<div id="toonbron_132242">
+		<div>
+			<span>
+				"Uit: "
+				<a href="quiz/fothemaquiz-34-2016">
+					<strong>FothemaQuiz 34</strong>
+					" (2016)"
+				</a>
+				", "
+				<a href="quiz/fothemaquiz-34-2016/1">
+					<strong>ronde 1, vraag 11</strong>
+				</a>
+				", door "
+				<a href="quizteam/pepeq">
+					<strong>PépéQ</strong>
+				</a>
+			</span>
+		</div>
+	</div>
+
+		-> question_number = 132242
+		-> quizname = FothemaQuiz 34
+		-> round = 1
+		-> questionnumber in round = 11
+		-> organiser/designer: PépéQ
+	"""
+
+	quizinfo_pattern = ''.join(('toonbron_', question_number))
+
+	try:
+		quizinfo_div = questionrow.find('div', {'id': quizinfo_pattern})
+		quizinfo_links = quizinfo_div.find_all('a')
+
+		quiz_name = quizinfo_links[0].find('strong').text.strip()
+
+		# " (2016)"  -->   2016
+		year_pattern = re.compile('(?P<year>\d{4})')
+		quiz_year = re.search(year_pattern, quizinfo_links[0].contents[1].strip()).group('year')
+
+		quiz_url = ''.join(('https://www.quizarchief.be/speel', quizinfo_links[0].get('href')))
+		quiz_roundinfo = quizinfo_links[1].find('strong').text.strip()
+		quiz_organiser = quizinfo_links[2].find('strong').text.strip()
+
+
+		quiz_info_dictionary = {}
+
+		quiz_info_dictionary['quiz_name'] = quiz_name
+		quiz_info_dictionary['quiz_year'] = quiz_year
+		quiz_info_dictionary['quiz_url'] = quiz_url
+		quiz_info_dictionary['quiz_roundinfo'] = quiz_roundinfo
+		quiz_info_dictionary['quiz_organiser'] = quiz_organiser
+		logger.info(f'quiz_info_dictionary for question {question_number}: \n {quiz_info_dictionary}')
+
+		return quiz_info_dictionary
+
+	except Exception as e:
+		logger.error(f'No information about the quiz could be found for question_number: {question_number}, with exception: \n {e}')
+
+		return None
+
 def sleep_randomly(max_sleeptime, min_sleeptime=1):
 	"""
 	Return a random pause in seconds of maximum max_sleeptime.
@@ -517,3 +599,75 @@ def sleep_randomly(max_sleeptime, min_sleeptime=1):
 	time.sleep(sleeptime)
 
 	return sleeptime
+
+def find_page_for_question(requested_question_number, category):
+	"""
+	Return url & position on page for a given requested_question_number.
+
+	Quizarchief.be does not apply a REST-interface,
+	hence if we want to look up a specific question, we need to travel through all questions.
+
+	To avoid to do this linearly, we apply a binary search algorithm.
+
+	!the amount of questions displayed is different for logged in users.
+	So make sure you log in when viewing the returned url in a browser.
+	"""
+
+	requested_question_number = int(requested_question_number)
+
+	session = createSession()
+	login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.get('password', None))
+
+	category_dictionary = create_category_dictionary()
+	pages_for_category = compute_pages_for_category(category, category_dictionary)
+
+	start_page = 0
+	end_page = pages_for_category
+
+	found = False
+
+	while(not found):
+
+		page_range = [start_page, end_page]
+		logger.info(f'page_range {page_range}')
+
+		requested_pagenr = math.ceil((page_range[1] - page_range[0])/2) + page_range[0]
+		logger.info(f'requested_pagenr: {requested_pagenr} as ceiling of ((({page_range[1]} - {page_range[0]})/2) + {page_range[0]})')
+
+		url = construct_url(category, requested_pagenr)
+		logger.info(f'constructed url: {url}')
+		page = session.get(url)
+		soup = BeautifulSoup(page.content, 'html5lib', from_encoding='UTF-8')
+		questionrows = find_all_questionrows(soup)
+
+		questionrows_length = len(questionrows)
+		logger.info(f'Length questionrows: {questionrows_length}')
+
+		for i, questionrow in enumerate(questionrows):
+			question_number_in_row = find_question_number(questionrow)
+			logger.info(f'question_number in questionrow: {question_number_in_row}')
+			int_question_number_in_row = int(question_number_in_row)
+			logger.info(f'int(question_number): {int_question_number_in_row}')
+
+
+			if requested_question_number == int_question_number_in_row:
+				logger.info(f'{requested_question_number} == {int_question_number_in_row}')
+				logger.info(f'*******************************************\nFound question {requested_question_number}:  \n page {requested_pagenr} - question {i+1} on the screen with url: \n {url} \n\nMake sure you are logged in when viewing the result in the browser!\n*******************************************')
+				found = True
+
+				break
+
+			elif requested_question_number > int_question_number_in_row:
+				logger.info(f'{requested_question_number} > {int_question_number_in_row}')
+				logger.info(f'Hence, your requested question is on a page before this one.')
+				end_page = requested_pagenr
+				logger.info(f'Renewed search range: [{start_page}, {end_page}]')
+
+			elif requested_question_number < int_question_number_in_row:
+				logger.info(f'{requested_question_number} < {int_question_number_in_row}')
+				logger.info(f'Hence, your requested question is on a page after this one.')
+				start_page = requested_pagenr
+				logger.info(f'Renewed search range: [{start_page}, {end_page}]')
+
+		else:
+			sleep_randomly(5, 0)
