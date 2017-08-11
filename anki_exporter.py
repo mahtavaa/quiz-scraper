@@ -1,6 +1,7 @@
 import csv
 import datetime
 import os
+import re
 import sqlite3
 from database_interaction import make_connection, create_cursor, get_categoryid, get_questions_with_image_for_category
 from logger_setup import create_logger
@@ -8,7 +9,7 @@ from logger_setup import create_logger
 logger = create_logger(__name__)
 date_now = datetime.datetime.now()
 
-CATEGORY = 'kunst-cultuur'
+CATEGORY = ''
 EXPORT_FOLDER = f'./anki-export/{CATEGORY}/'
 EXPORT_FILE = f'./{EXPORT_FOLDER}/({date_now:%Y-%m-%d}) {CATEGORY}.csv'
 
@@ -64,7 +65,12 @@ with open(EXPORT_FILE, 'a', newline='', encoding='utf-8') as csv_file:
 
 	for row in questions_with_image_for_category:
 
-		question = row[2].decode('utf-8')
+		question = row[2]
+
+		# question_text used to be stored as an encoded value (bytes)
+		# in newer version it is stored as str
+		if type(question) == bytes:
+			question = question.decode('utf-8')
 
 		question_html = f'<p>{question}</p>'
 
@@ -80,6 +86,16 @@ with open(EXPORT_FILE, 'a', newline='', encoding='utf-8') as csv_file:
 		question_card = f'{question_html}{image_html}'
 
 		answer = row[3]
+
+		# answer_text used to be stored as an encoded value (bytes)
+		# in newer version it is stored as str
+		if type(answer)	== bytes:
+			answer = answer.decode('utf-8')
+
+		newline_pattern = re.compile('\n')
+		html_br = '<br>'
+
+		answer = re.sub(newline_pattern, html_br, answer)
 
 		writer.writerow({'question': question_card, 'answer': answer})
 

@@ -52,7 +52,7 @@ def create_category_dictionary():
 	url = 'https://www.quizarchief.be/categorie/'
 
 	page = requests.get(url)
-	soup = BeautifulSoup(page.content, 'html5lib')
+	soup = BeautifulSoup(page.content, 'html5lib', from_encoding='UTF-8')
 
 	category_dict = {}
 
@@ -331,10 +331,10 @@ def find_question(questionrow, question_number):
 		
 		if len(questionrow.find_all('a', {'id': tag_regex})) > 0:
 			#if there are tags available, apply contents[1]
-			question_text = question_div.contents[1].encode('utf-8').strip()
+			question_text = question_div.contents[1].strip()
 		else:
 			#if there is no tag, it is directly under the div, so contents[0]
-			question_text = question_div.contents[0].encode('utf-8').strip()
+			question_text = question_div.contents[0].strip()
 
 		logger.info(f'The question_text for question nr. {question_number}: \n {question_text}')
 
@@ -471,7 +471,7 @@ def find_image(questionrow, question_number, categorie, session):
 
 	return image_filename
 
-def find_answer(questionrow, question_number, session):
+def find_answer(question_number, session):
 	"""
 	Return answer_text.
 	Return '' (empty string) if no answer_text could be extracted
@@ -487,7 +487,7 @@ def find_answer(questionrow, question_number, session):
 		answer_page = session.get(answer_url)
 		answer_page.encoding = 'utf-8'
 
-		soup = BeautifulSoup(answer_page.content, 'html5lib')
+		soup = BeautifulSoup(answer_page.content, 'html5lib', from_encoding='UTF-8')
 
 		answer_text = soup.find('b').text.strip()
 
