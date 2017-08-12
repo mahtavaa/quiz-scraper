@@ -3,9 +3,11 @@
 003 add youtube visual support (with youtube-dl) (scraper_utilities)
 004 seperate finding of image & downloading it (sraper_utilities)
 005 maybe add some more http headers when establishing session (more human-like)
-006 scrape max #pages that can be downloaded for a given category & in main_scraper limit the settings.TO_PAGE in range to this value
 007 provide command line interface with argparse
 008 add database_initialization support --> if already there, ask for new name/overwrite/... instead of current manual python database_initialization.py
 009 make pep compliant --> tabs to spaces
 010 add README.md
 011 add .gitignore
+012 anki_exporter: add argparse interface
+013 anki_exporter: check for input -> raise error when category does not exist
+014 import statements @main_scraper = ugly af

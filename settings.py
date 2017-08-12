@@ -3,15 +3,15 @@ CREDENTIALS
 
 Arguments:
 
-username	valid username for https://www.quizarchief.be
-password	valid password for https://www.quizarchief.be
+username:	valid username for https://www.quizarchief.be
+password:	valid password for https://www.quizarchief.be
 """
 CREDENTIALS = {
 	'username': '',
 	'password': ''
 }
 
-DATABASE_URL = 'quizarchief.sqlite'
+DATABASE_URL = 'quizarchief_v003.sqlite'
 """
 CATEGORY
 
@@ -52,7 +52,7 @@ The list above might change over time, for the most recent overview, use:
 from scraper_utilities import create_category_dictionary()
 create_category_dicionary()
 """
-CATEGORY = 'taal'
+CATEGORY = 'media-showbizz'
 
 
 """ FROM_PAGE: page to start from """

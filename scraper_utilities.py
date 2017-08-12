@@ -141,16 +141,16 @@ def validate_start_page(start_page, end_page):
 	return start_page
 
 
-def construct_url(categorie, page):
+def construct_url(categorie, page_nr, questions_per_page=20):
 	"""
 	Return constructed url.
 
 	Arguments:
 	categorie -- a thematic category, for a list of all available options, see below
-	page -- pagenumber
+	page_nr -- pagenumber
 
 	The url is composed of multiple parts:
-	https://www.quizarchief.be/categorie/cat/pn/aoqpp/so/pt
+	https://www.quizarchief.be/categorie/cat/pn/qpp/so/pt
 
 	protocol: https://
 	subdomain: www
@@ -193,7 +193,7 @@ def construct_url(categorie, page):
 
 	pn -- pagenumber
 	
-	aoqpp -- amount of questions per page:
+	qpp -- amount of questions per page:
 	    1: 1 vraag
 	    3: 3 vragen
 	    5: 5 vragen
@@ -225,7 +225,7 @@ def construct_url(categorie, page):
 
 	"""
 
-	url = f'https://www.quizarchief.be/categorie/{categorie}/{page}/20/1/0'
+	url = f'https://www.quizarchief.be/categorie/{categorie}/{page_nr}/{questions_per_page}/1/0'
 	logger.debug(f'url constructed as: \n {url}')
 	
 	return url
@@ -472,6 +472,66 @@ def find_image(questionrow, question_number, categorie, session):
 
 	return image_filename
 
+
+def find_youtube_fragment(questionrow, question_number, session):
+	"""Return youtube_id in case questionrow has embedded youtube fragment."""
+
+	# youtube embeds are a mess, sometimes /watch is used, sometimes /embed
+	# however, every question with a youtubelink has at least a reporting button, like:
+	# <a id="brokenyoutubelink_178984">Rapporteer dode link</a>
+
+	# so detect first whether there is überhaupt a youtube embed
+	broken_youtubelink_pattern = re.compile('brokenyoutubelink_\d+')
+	has_youtube_visual = questionrow.find('a', {'id': broken_youtubelink_pattern})
+
+	youtube_id = ''
+
+	if has_youtube_visual:
+		# multiple types of embeds are possible, so let's try'm all
+
+		# <object type="application/x-shockwave-flash" width="100%" height="40" \
+		# data="https://www.youtube.com/v/0PWkRBmKKU8 \
+		# ?version=2&autoplay=0&loop=1&hd=1&theme=dark&rel=0 \
+		# &showinfo=0&controls=1&fs=0&iv_load_policy=3&color=white \
+		# &cc_load_policy=0&showsearch=0&autohide=0&loop=1">
+		object_html = questionrow.find('object')
+		
+
+
+		if object_html:
+			youtube_link = object_html.get('data')
+
+			youtube_id_pattern = re.compile(r'youtube.com/v/(?P<youtube_id>[^?]+)')
+			youtube_id = re.search(youtube_id_pattern, youtube_link).group('youtube_id')
+			logger.debug(f'object_html found with youtube_id: {youtube_id}')
+
+			return youtube_id
+		
+
+		# <div class="video-container">
+		# 	<iframe allowfullscreen="" width="100%" src="https://www.youtube.com/embed/0vrz17ZG3L8?version=2&amp...">
+		# 	</iframe>
+		# </div>
+		youtube_embed_pattern = re.compile(r'https://www.youtube.com/embed/.*')
+		iframe_html = questionrow.find('iframe', {'src': youtube_embed_pattern})
+		# 
+		if iframe_html:
+			youtube_link = iframe_html.get('src')
+
+			youtube_id_pattern = re.compile(r'youtube.com/embed/(?P<youtube_id>[^?]+)')
+			youtube_id = re.search(youtube_id_pattern, youtube_link).group('youtube_id')
+			logger.debug(f'iframe_html found with youtube_id: {youtube_id}')
+
+			return youtube_id
+
+	return youtube_id
+
+def get_youtube_watch_url(youtube_id):
+	"""Transform youtube_id to watchable url."""
+	youtube_watch_url = ''.join(('https://www.youtube.com/watch?v=', youtube_id))
+	return youtube_watch_url
+
+
 def find_answer(question_number, session):
 	"""
 	Return answer_text.
@@ -511,6 +571,9 @@ def find_quiz_info(questionrow, question_number):
 		'quiz_roundinfo': '<round, questionnumber (in round)>',
 		'quiz_organiser': '<quiz organiser/designer>'
 	}
+	
+	If quiz was not yet made public @time of scraping,
+	quiz_organiser is set to '' (empty string)
 
 	Each questionrow -even for non-organized quizzes, like photoquizzes-
 	includes some information about the quiz:
@@ -562,7 +625,12 @@ def find_quiz_info(questionrow, question_number):
 
 		quiz_url = ''.join(('https://www.quizarchief.be/speel', quizinfo_links[0].get('href')))
 		quiz_roundinfo = quizinfo_links[1].find('strong').text.strip()
-		quiz_organiser = quizinfo_links[2].find('strong').text.strip()
+		
+		# quiz_organiser is only available, when the quiz is made public
+		if len(quizinfo_links) > 2:
+			quiz_organiser = quizinfo_links[2].find('strong').text.strip()
+		else:
+			quiz_organiser = ''
 
 
 		quiz_info_dictionary = {}
@@ -600,7 +668,7 @@ def sleep_randomly(max_sleeptime, min_sleeptime=1):
 
 	return sleeptime
 
-def find_page_for_question(requested_question_number, category):
+def find_page_for_question(requested_question_number, category, questions_per_page=20):
 	"""
 	Return page_url & position on page for a given requested_question_number as a list: [page_url, question_position]
 
@@ -619,7 +687,7 @@ def find_page_for_question(requested_question_number, category):
 	login(session, username=settings.CREDENTIALS.get('username', None), password=settings.CREDENTIALS.get('password', None))
 
 	category_dictionary = create_category_dictionary()
-	pages_for_category = compute_pages_for_category(category, category_dictionary)
+	pages_for_category = compute_pages_for_category(category, category_dictionary, questions_per_page)
 
 	start_page = 0
 	end_page = pages_for_category
@@ -637,7 +705,7 @@ def find_page_for_question(requested_question_number, category):
 		requested_pagenr = math.ceil((page_range[1] - page_range[0])/2) + page_range[0]
 		logger.info(f'requested_pagenr: {requested_pagenr} as ceiling of ((({page_range[1]} - {page_range[0]})/2) + {page_range[0]})')
 
-		page_url = construct_url(category, requested_pagenr)
+		page_url = construct_url(category, requested_pagenr, questions_per_page)
 		logger.info(f'constructed page_url: {page_url}')
 		page = session.get(page_url)
 		soup = BeautifulSoup(page.content, 'html5lib', from_encoding='UTF-8')

@@ -149,3 +149,45 @@ def get_quiz_id_with_quiz_url(quiz_url, cursor):
 
 	quiz_id = cursor.fetchone()
 	return quiz_id
+
+
+def get_category_name_for_question_number(question_number, cursor):
+
+	cursor.execute('''
+		SELECT category_name
+		FROM category
+		WHERE category_id = (
+			SELECT category_id
+			FROM question
+			WHERE question_number = ?
+		)
+	''', (question_number,))
+
+	question_number = cursor.fetchone()
+	return question_number
+
+
+def insert_youtube_fragment(youtube_id, youtube_watch, question_id, cursor):
+
+	cursor.execute('''
+		INSERT INTO youtube_fragment (youtube_id, youtube_watch, question_id)
+		VALUES (?, ?, ?)
+	''', (youtube_id, youtube_watch, question_id))
+
+	lastrowid = cursor.lastrowid
+	return lastrowid
+
+
+def get_questions_with_image_and_youtube_fragment_for_category(category_id, cursor):
+
+	cursor.execute('''
+		SELECT q.question_id, q.question_number, q.question_text, q.answer_text, q.category_id, q.quiz_id, i.img_id, i.img_filename, yf.youtube_id, yf.youtube_watch
+		FROM question q 
+		LEFT JOIN image i ON q.question_id = i.question_id
+		LEFT JOIN youtube_fragment yf ON q.question_id = yf.question_id
+		WHERE q.category_id = ?
+	''', (category_id,))
+
+	questions_with_image_and_youtube_fragment = cursor.fetchall()
+	return questions_with_image_and_youtube_fragment
+

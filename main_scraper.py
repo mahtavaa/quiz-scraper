@@ -101,6 +101,13 @@ if scraper_util.is_valid_category(CATEGORY, category_dict):
 				img_id = db_inter.insert_image(img_filename, question_id, cursor)
 			
 
+			youtube_id = scraper_util.find_youtube_fragment(questionrow, question_number, session)
+
+			if youtube_id:
+				youtube_watch = scraper_util.get_youtube_watch_url(youtube_id)
+				fragment_id = db_inter.insert_youtube_fragment(youtube_id, youtube_watch, question_id, cursor)
+
+
 			tag_names = scraper_util.find_tags(questionrow, question_number)
 			
 			tag_id = ''
