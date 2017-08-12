@@ -191,3 +191,41 @@ def get_questions_with_image_and_youtube_fragment_for_category(category_id, curs
 	questions_with_image_and_youtube_fragment = cursor.fetchall()
 	return questions_with_image_and_youtube_fragment
 
+
+def get_tags_for_question_id(question_id, cursor):
+
+	cursor.execute('''
+		SELECT t.tag_name
+		FROM tag t
+		WHERE t.tag_id in (
+			SELECT qt.tag_id
+			FROM question_tag qt
+			WHERE qt.question_id	in (
+				SELECT q.question_id
+				FROM question q
+				WHERE q.question_number = ?
+			)
+		);
+	''', (question_id,))
+
+	tags = cursor.fetchall()
+	return tags
+
+def get_tags_for_question_number(question_number, cursor):
+
+	cursor.execute('''
+		SELECT t.tag_name
+		FROM tag t
+		WHERE t.tag_id in (
+			SELECT qt.tag_id
+			FROM question_tag qt
+			WHERE qt.question_id	in (
+				SELECT q.question_id
+				FROM question q
+				WHERE q.question_number = ?
+			)
+		);
+	''', (question_number,))
+
+	tags = cursor.fetchall()
+	return tags
