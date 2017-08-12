@@ -203,7 +203,7 @@ def get_tags_for_question_id(question_id, cursor):
 			WHERE qt.question_id	in (
 				SELECT q.question_id
 				FROM question q
-				WHERE q.question_number = ?
+				WHERE q.question_id = ?
 			)
 		);
 	''', (question_id,))
