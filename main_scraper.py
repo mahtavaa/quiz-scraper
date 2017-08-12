@@ -40,7 +40,7 @@ if scraper_util.is_valid_category(CATEGORY, category_dict):
 			
 			question_number = scraper_util.find_question_number(questionrow)
 
-			is_already_in_database = db_inter.get_questionid(question_number, cursor)
+			is_already_in_database = db_inter.get_question_id(question_number, cursor)
 			
 			if is_already_in_database:
 				logger.info(f'Question {question_number} is already in database.')
@@ -73,7 +73,7 @@ if scraper_util.is_valid_category(CATEGORY, category_dict):
 				quiz_id = quiz_id[0]
 
 			category_name = CATEGORY
-			category_id = db_inter.get_categoryid(category_name, cursor)
+			category_id = db_inter.get_category_id(category_name, cursor)
 
 			if not category_id:
 				category_id = db_inter.insert_category(category_name, cursor)
@@ -109,7 +109,7 @@ if scraper_util.is_valid_category(CATEGORY, category_dict):
 
 				for tag_name in tag_names:
 
-					tag_id = db_inter.get_tagid(tag_name, cursor)
+					tag_id = db_inter.get_tag_id(tag_name, cursor)
 
 					if not tag_id:
 						tag_id = db_inter.insert_tag(tag_name, cursor)

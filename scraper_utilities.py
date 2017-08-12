@@ -1,18 +1,18 @@
 from bs4 import BeautifulSoup
-from logger_setup import create_logger
-from settings import CREDENTIALS
+import logger_setup
 import math
 import os
 import random
 import re
 import requests
+import settings
 import shutil
 import sqlite3
 import time
 
-logger = create_logger(__name__)
+logger = logger_setup.create_logger(__name__)
 
-def createSession():
+def create_session():
 	"""Return a requests' session object."""
 
 	with requests.Session() as session:
@@ -602,7 +602,7 @@ def sleep_randomly(max_sleeptime, min_sleeptime=1):
 
 def find_page_for_question(requested_question_number, category):
 	"""
-	Return url & position on page for a given requested_question_number.
+	Return page_url & position on page for a given requested_question_number as a list: [page_url, question_position]
 
 	Quizarchief.be does not apply a REST-interface,
 	hence if we want to look up a specific question, we need to travel through all questions.
@@ -615,14 +615,17 @@ def find_page_for_question(requested_question_number, category):
 
 	requested_question_number = int(requested_question_number)
 
-	session = createSession()
-	login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.get('password', None))
+	session = create_session()
+	login(session, username=settings.CREDENTIALS.get('username', None), password=settings.CREDENTIALS.get('password', None))
 
 	category_dictionary = create_category_dictionary()
 	pages_for_category = compute_pages_for_category(category, category_dictionary)
 
 	start_page = 0
 	end_page = pages_for_category
+
+	page_url = ''
+	question_position = 0
 
 	found = False
 
@@ -634,16 +637,16 @@ def find_page_for_question(requested_question_number, category):
 		requested_pagenr = math.ceil((page_range[1] - page_range[0])/2) + page_range[0]
 		logger.info(f'requested_pagenr: {requested_pagenr} as ceiling of ((({page_range[1]} - {page_range[0]})/2) + {page_range[0]})')
 
-		url = construct_url(category, requested_pagenr)
-		logger.info(f'constructed url: {url}')
-		page = session.get(url)
+		page_url = construct_url(category, requested_pagenr)
+		logger.info(f'constructed page_url: {page_url}')
+		page = session.get(page_url)
 		soup = BeautifulSoup(page.content, 'html5lib', from_encoding='UTF-8')
 		questionrows = find_all_questionrows(soup)
 
 		questionrows_length = len(questionrows)
 		logger.info(f'Length questionrows: {questionrows_length}')
 
-		for i, questionrow in enumerate(questionrows):
+		for question_position, questionrow in enumerate(questionrows):
 			question_number_in_row = find_question_number(questionrow)
 			logger.info(f'question_number in questionrow: {question_number_in_row}')
 			int_question_number_in_row = int(question_number_in_row)
@@ -652,7 +655,8 @@ def find_page_for_question(requested_question_number, category):
 
 			if requested_question_number == int_question_number_in_row:
 				logger.info(f'{requested_question_number} == {int_question_number_in_row}')
-				logger.info(f'*******************************************\nFound question {requested_question_number}:  \n page {requested_pagenr} - question {i+1} on the screen with url: \n {url} \n\nMake sure you are logged in when viewing the result in the browser!\n*******************************************')
+				logger.info(f'*******************************************\nFound question {requested_question_number}:  \n page {requested_pagenr} - question {question_position+1} on the screen with page_url: \n {page_url} \n\nMake sure you are logged in when viewing the result in the browser!\n*******************************************')
+
 				found = True
 
 				break
@@ -671,3 +675,6 @@ def find_page_for_question(requested_question_number, category):
 
 		else:
 			sleep_randomly(5, 0)
+
+	question_location = [page_url, question_position]
+	return question_location

@@ -1,29 +1,29 @@
 import csv
+import database_interaction as db_inter
 import datetime
+import logger_setup
 import os
 import re
 import sqlite3
-from database_interaction import make_connection, create_cursor, get_categoryid, get_questions_with_image_for_category
-from logger_setup import create_logger
 
-logger = create_logger(__name__)
+logger = logger_setup.create_logger(__name__)
 date_now = datetime.datetime.now()
 
 CATEGORY = ''
 EXPORT_FOLDER = f'./anki-export/{CATEGORY}/'
 EXPORT_FILE = f'./{EXPORT_FOLDER}/({date_now:%Y-%m-%d}) {CATEGORY}.csv'
 
-connection = make_connection('quizarchief.sqlite')
+connection = db_inter.make_connection('quizarchief.sqlite')
 logger.info(f'Connection made @{connection}')
-cursor = create_cursor(connection)
+cursor = db_inter.create_cursor(connection)
 logger.info(f'Cursor created as {cursor}')
 
 
-category_id = get_categoryid(CATEGORY, cursor)[0]
+category_id = db_inter.get_category_id(CATEGORY, cursor)[0]
 logger.info(f'Your category "{CATEGORY} has a category_id of {category_id}')
 
-questions_with_image_for_category = get_questions_with_image_for_category(category_id, cursor)
-logger.info(f'The query get_questions_with_image_for_category({category_id}, cursor) returned {len(questions_with_image_for_category)} rows.')
+questions_with_image_for_category = db_inter.get_questions_with_image_for_category(category_id, cursor)
+logger.info(f'The query db_inter.get_questions_with_image_for_category({category_id}, cursor) returned {len(questions_with_image_for_category)} rows.')
 # logger.info(f'Here are the first 5 first rows of your query: \n {questions_with_image_for_category[:5]}')
 
 image_directory = f'./{CATEGORY}/'

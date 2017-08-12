@@ -10,17 +10,27 @@ def create_cursor(connection):
 	cursor = connection.cursor()
 	return cursor
 
-def insert_question(question_number, question_text, answer_text, category_id, cursor):
+def insert_question(question_number, question_text, answer_text, category_id, quiz_id, cursor):
 
 	cursor.execute('''
-		INSERT INTO question (question_number, question_text, answer_text, category_id)
-		VALUES (?, ?, ?, ?)
-	''', (question_number, question_text, answer_text, category_id,))
+		INSERT INTO question (question_number, question_text, answer_text, category_id, quiz_id)
+		VALUES (?, ?, ?, ?, ?)
+	''', (question_number, question_text, answer_text, category_id, quiz_id,))
 
 	lastrowid = cursor.lastrowid
 	return lastrowid
 
-def get_tagid(tag_name, cursor):
+def insert_quiz(quiz_name, quiz_year, quiz_url, quiz_organiser, cursor):
+
+	cursor.execute('''
+		INSERT INTO quiz (quiz_name, quiz_year, quiz_url, quiz_organiser)
+		VALUES (?, ?, ?, ?)
+	''', (quiz_name, quiz_year, quiz_url, quiz_organiser))
+
+	lastrowid = cursor.lastrowid
+	return lastrowid
+
+def get_tag_id(tag_name, cursor):
 
 	cursor.execute('''
 		SELECT tag_id
@@ -71,7 +81,7 @@ def insert_category(category_name, cursor):
 	lastrowid = cursor.lastrowid
 	return lastrowid
 
-def get_categoryid(category_name, cursor):
+def get_category_id(category_name, cursor):
 
 	cursor.execute('''
 		SELECT category_id
@@ -82,7 +92,7 @@ def get_categoryid(category_name, cursor):
 	category_id = cursor.fetchone()
 	return category_id
 
-def get_questionid(question_number, cursor):
+def get_question_id(question_number, cursor):
 
 	cursor.execute('''
 		SELECT question_id
@@ -103,3 +113,39 @@ def get_questions_with_image_for_category(category_id, cursor):
 
 	questions_with_image = cursor.fetchall()
 	return questions_with_image
+
+
+def get_question_with_question_id(question_id, cursor):
+
+	cursor.execute('''
+		SELECT *
+		FROM question q
+		WHERE question_id = ?
+	''', (question_id,))
+
+	question = cursor.fetchone()
+	return question
+
+
+def get_question_with_question_number(question_number, cursor):
+
+	cursor.execute('''
+		SELECT *
+		FROM question
+		WHERE question_number = ?
+	''', (question_number,))
+
+	question = cursor.fetchall()
+	return question
+
+
+def get_quiz_id_with_quiz_url(quiz_url, cursor):
+
+	cursor.execute('''
+		SELECT quiz_id
+		FROM quiz
+		WHERE quiz_url = ?
+	''', (quiz_url,))
+
+	quiz_id = cursor.fetchone()
+	return quiz_id
