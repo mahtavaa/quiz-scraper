@@ -647,7 +647,16 @@ def find_quiz_info(questionrow, question_number):
 	except Exception as e:
 		logger.error(f'No information about the quiz could be found for question_number: {question_number}, with exception: \n {e}')
 
-		return None
+		# There are some exceptional cases where no info at all is given. Program should continue & just enter blanks.
+		quiz_info_dictionary = {
+			'quiz_name': '',
+			'quiz_year': '',
+			'quiz_url': '',
+			'quiz_roundinfo': '',
+			'quiz_organiser': ''
+		}
+
+		return quiz_info_dictionary
 
 def sleep_randomly(max_sleeptime, min_sleeptime=1):
 	"""
