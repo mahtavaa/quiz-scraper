@@ -71,6 +71,7 @@ with open(EXPORT_FILE, 'a', newline='', encoding='utf-8') as csv_file:
 
 
 		youtube_html = ''
+		youtube_watch_html = ''
 
 		# embedded youtube iframe is not supported on windows
 		# see: https://www.reddit.com/r/Anki/comments/507bns/question_can_i_embed_youtube_videos_into_the_cards/
