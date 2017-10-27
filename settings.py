@@ -16,43 +16,47 @@ DATABASE_URL = 'quizarchief_v003.sqlite'
 CATEGORY
 
 Arguments:
-    aardrijkskunde
-	architectuur-bouwkunde
-	binnenland
-	biologie-fauna
-	biologie-flora
-	economie-business
-	gastronomie-keuken-eten-drinken
-	film
-	filosofie
-	foto
-	games-ontspanning
-	geloof-religie-godsdienst
-	geneeskunde-menselijk-lichaam
-	geschiedenis
-	informatica-internet
-	kunst-cultuur
-	literatuur
-	media-showbizz
-	mode-lifestyle
-	muziek
-	mythologie
-	politiek-binnenland
-	politiek-buitenland
-	puzzels-raadsels-breinbrekers
-	sport
-	strips
-	taal
-	televisie
-	varia
-	wetenschap-techniek
+	Iterate over all available categories:
+		ALL
 
-The list above might change over time, for the most recent overview, use:
+	Select a single category:
+		aardrijkskunde
+		architectuur-bouwkunde
+		binnenland
+		biologie-fauna
+		biologie-flora
+		economie-business
+		gastronomie-keuken-eten-drinken
+		film
+		filosofie
+		foto
+		games-ontspanning
+		geloof-religie-godsdienst
+		geneeskunde-menselijk-lichaam
+		geschiedenis
+		informatica-internet
+		kunst-cultuur
+		literatuur
+		media-showbizz
+		mode-lifestyle
+		muziek
+		mythologie
+		politiek-binnenland
+		politiek-buitenland
+		puzzels-raadsels-breinbrekers
+		sport
+		strips
+		taal
+		televisie
+		varia
+		wetenschap-techniek
 
-from scraper_utilities import create_category_dictionary()
-create_category_dicionary()
+	The list above might change over time, for the most recent overview, use:
+
+	from scraper_utilities import create_category_dictionary()
+	create_category_dicionary()
 """
-CATEGORY = 'media-showbizz'
+CATEGORY = 'ALL'
 
 
 """ FROM_PAGE: page to start from """
@@ -137,4 +141,4 @@ ONLY_NEW = True:
 	Downloading question 32.
 	Question 30 is already present in database.
 """
-ONLY_NEW = False
+ONLY_NEW = True

@@ -13,133 +13,143 @@ SLEEP_TIME = settings.SLEEP_TIME
 CREDENTIALS = settings.CREDENTIALS
 
 category_dict = scraper_util.create_category_dictionary()
-if scraper_util.is_valid_category(CATEGORY, category_dict):
 
-	pages_for_category = scraper_util.compute_pages_for_category(CATEGORY, category_dict)
-	end_page = scraper_util.validate_end_page(TO_PAGE, pages_for_category)
-	start_page = scraper_util.validate_start_page(FROM_PAGE, end_page)
+if CATEGORY == 'ALL':
+	categories = [category for category in category_dict.keys()]
+else:
+	categories = [CATEGORY]
 
-	connection = db_inter.make_connection(DATABASE_URL)
-	cursor = db_inter.create_cursor(connection)
+for category in categories:
 
-	session = scraper_util.create_session()
-	scraper_util.login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.get('password', None))
+	logger.info(f'\n Scraping questions for category: {category} \n')
+
+	if scraper_util.is_valid_category(category, category_dict):
+
+		pages_for_category = scraper_util.compute_pages_for_category(category, category_dict)
+		end_page = scraper_util.validate_end_page(TO_PAGE, pages_for_category)
+		start_page = scraper_util.validate_start_page(FROM_PAGE, end_page)
+
+		connection = db_inter.make_connection(DATABASE_URL)
+		cursor = db_inter.create_cursor(connection)
+
+		session = scraper_util.create_session()
+		scraper_util.login(session, username=CREDENTIALS.get('username', None), password=CREDENTIALS.get('password', None))
 
 
-	for pagenr in range(start_page, end_page):
-		
-		url = scraper_util.construct_url(CATEGORY, pagenr)
-		
-		logger.info(f'Fetching results for page {pagenr}. \n')
-
-		questionpage = scraper_util.get_questionpage(url, session)
-		soup = scraper_util.make_soup(questionpage)
-		questionrows = scraper_util.find_all_questionrows(soup)
-
-		for i, questionrow in enumerate(questionrows):
+		for pagenr in range(start_page, end_page):
 			
-			question_number = scraper_util.find_question_number(questionrow)
-
-			is_already_in_database = db_inter.get_question_id(question_number, cursor)
+			url = scraper_util.construct_url(category, pagenr)
 			
-			if is_already_in_database:
-				logger.info(f'Question {question_number} is already in database.')
+			logger.info(f'Fetching results for page {pagenr}. \n')
+
+			questionpage = scraper_util.get_questionpage(url, session)
+			soup = scraper_util.make_soup(questionpage)
+			questionrows = scraper_util.find_all_questionrows(soup)
+
+			for i, questionrow in enumerate(questionrows):
 				
-				if settings.ONLY_NEW == True:
-					logger.info(f'You set settings.ONLY_NEW to True, so downloading will stop.')
+				question_number = scraper_util.find_question_number(questionrow)
+
+				is_already_in_database = db_inter.get_question_id(question_number, cursor)
+				
+				if is_already_in_database:
+					logger.info(f'Question {question_number} is already in database.')
 					
-					# For details about ONLY_NEW, see settings.py
-					break
+					if settings.ONLY_NEW == True:
+						logger.info(f'You set settings.ONLY_NEW to True, so downloading will stop.')
+						
+						# For details about ONLY_NEW, see settings.py
+						break
 
-				# Take a sleeptime of 0 or 1 seconds between the parsing of each question
-				# by doing so, it will take 10 seconds on average for 1 page which is still reasonable
-				# otherwise: in scenario you already downloaded the first 100 pages, but need page 101
-				# the 100 pages would be asked without a pause (or only with pause = time to retrieve question_id * 20)
-				scraper_util.sleep_randomly(1, 0)
-				continue
+					# Take a sleeptime of 0 or 1 seconds between the parsing of each question
+					# by doing so, it will take 10 seconds on average for 1 page which is still reasonable
+					# otherwise: in scenario you already downloaded the first 100 pages, but need page 101
+					# the 100 pages would be asked without a pause (or only with pause = time to retrieve question_id * 20)
+					scraper_util.sleep_randomly(1, 0)
+					continue
 
-			quiz_info_dictionary = scraper_util.find_quiz_info(questionrow, question_number)
-			quiz_name = quiz_info_dictionary.get('quiz_name')
-			quiz_year = quiz_info_dictionary.get('quiz_year')
-			quiz_url = quiz_info_dictionary.get('quiz_url')
-			quiz_organiser = quiz_info_dictionary.get('quiz_organiser')
+				quiz_info_dictionary = scraper_util.find_quiz_info(questionrow, question_number)
+				quiz_name = quiz_info_dictionary.get('quiz_name')
+				quiz_year = quiz_info_dictionary.get('quiz_year')
+				quiz_url = quiz_info_dictionary.get('quiz_url')
+				quiz_organiser = quiz_info_dictionary.get('quiz_organiser')
 
-			quiz_id = db_inter.get_quiz_id_with_quiz_url(quiz_url, cursor)
+				quiz_id = db_inter.get_quiz_id_with_quiz_url(quiz_url, cursor)
 
-			if not quiz_id:
-				quiz_id = db_inter.insert_quiz(quiz_name, quiz_year, quiz_url, quiz_organiser, cursor)
+				if not quiz_id:
+					quiz_id = db_inter.insert_quiz(quiz_name, quiz_year, quiz_url, quiz_organiser, cursor)
 
-			else:
-				quiz_id = quiz_id[0]
+				else:
+					quiz_id = quiz_id[0]
 
-			category_name = CATEGORY
-			category_id = db_inter.get_category_id(category_name, cursor)
+				category_name = category
+				category_id = db_inter.get_category_id(category_name, cursor)
 
-			if not category_id:
-				category_id = db_inter.insert_category(category_name, cursor)
+				if not category_id:
+					category_id = db_inter.insert_category(category_name, cursor)
 
-			else:
-				category_id = category_id[0]
+				else:
+					category_id = category_id[0]
 
-			
-			question_text = scraper_util.find_question(questionrow, question_number)
-			answer_text = scraper_util.find_answer(question_number, session)
-
-			# logger.info(f'question_id = db_inter.insert_question(question_number, question_text, answer_text, category_id, quiz_id, cursor)')
-			# logger.info(f'param 0: question_number: \n {question_number}')
-			# logger.info(f'param 1: question_text: \n {question_text}')
-			# logger.info(f'param 2: answer_text: \n {answer_text}')
-			# logger.info(f'param 3: category_id: \n {category_id}')
-			# logger.info(f'param 4: quiz_id: \n {quiz_id}')
-			# logger.info(f'param 5: cursor: \n {cursor}')
-
-			question_id = db_inter.insert_question(question_number, question_text, answer_text, category_id, quiz_id, cursor)
-
-			img_filename = scraper_util.find_image(questionrow, question_number, category_name, session)
-
-			if img_filename:
-				img_id = db_inter.insert_image(img_filename, question_id, cursor)
-			
-
-			youtube_id = scraper_util.find_youtube_fragment(questionrow, question_number, session)
-
-			if youtube_id:
-				youtube_watch = scraper_util.get_youtube_watch_url(youtube_id)
-				fragment_id = db_inter.insert_youtube_fragment(youtube_id, youtube_watch, question_id, cursor)
-
-
-			tag_names = scraper_util.find_tags(questionrow, question_number)
-			
-			tag_id = ''
-			
-			if len(tag_names) > 0:
-
-				for tag_name in tag_names:
-
-					tag_id = db_inter.get_tag_id(tag_name, cursor)
-
-					if not tag_id:
-						tag_id = db_inter.insert_tag(tag_name, cursor)
-
-					else:
-						tag_id = tag_id[0]
 				
-					db_inter.insert_question_tag(question_id, tag_id, cursor)
+				question_text = scraper_util.find_question(questionrow, question_number)
+				answer_text = scraper_util.find_answer(question_number, session)
 
-			connection.commit()
-			logger.info(f'All information for question_number {question_number} was written to the database. \n')
+				# logger.info(f'question_id = db_inter.insert_question(question_number, question_text, answer_text, category_id, quiz_id, cursor)')
+				# logger.info(f'param 0: question_number: \n {question_number}')
+				# logger.info(f'param 1: question_text: \n {question_text}')
+				# logger.info(f'param 2: answer_text: \n {answer_text}')
+				# logger.info(f'param 3: category_id: \n {category_id}')
+				# logger.info(f'param 4: quiz_id: \n {quiz_id}')
+				# logger.info(f'param 5: cursor: \n {cursor}')
 
-			scraper_util.sleep_randomly(SLEEP_TIME)
+				question_id = db_inter.insert_question(question_number, question_text, answer_text, category_id, quiz_id, cursor)
 
-		# for the following trick, check Markus Janderot's answer on StackOverflow
-		# https://stackoverflow.com/questions/653509/breaking-out-of-nested-loops
-		#
-		# basically, if the question_number is already in the database && settings.ONLY_NEW = True
-		# we want to stop all operations of the scraper
-		# if settings.ONLY_NEW = False, the loop continues digging for more questions
-		else:
-			continue # executed when inner-for-loop executes without breaking
+				img_filename = scraper_util.find_image(questionrow, question_number, category_name, session)
 
-		break # if else-clause is not triggered, i.e. in case of breaking out of innerloop
+				if img_filename:
+					img_id = db_inter.insert_image(img_filename, question_id, cursor)
+				
 
-	connection.close()
+				youtube_id = scraper_util.find_youtube_fragment(questionrow, question_number, session)
+
+				if youtube_id:
+					youtube_watch = scraper_util.get_youtube_watch_url(youtube_id)
+					fragment_id = db_inter.insert_youtube_fragment(youtube_id, youtube_watch, question_id, cursor)
+
+
+				tag_names = scraper_util.find_tags(questionrow, question_number)
+				
+				tag_id = ''
+				
+				if len(tag_names) > 0:
+
+					for tag_name in tag_names:
+
+						tag_id = db_inter.get_tag_id(tag_name, cursor)
+
+						if not tag_id:
+							tag_id = db_inter.insert_tag(tag_name, cursor)
+
+						else:
+							tag_id = tag_id[0]
+					
+						db_inter.insert_question_tag(question_id, tag_id, cursor)
+
+				connection.commit()
+				logger.info(f'All information for question_number {question_number} was written to the database. \n')
+
+				scraper_util.sleep_randomly(SLEEP_TIME)
+
+			# for the following trick, check Markus Janderot's answer on StackOverflow
+			# https://stackoverflow.com/questions/653509/breaking-out-of-nested-loops
+			#
+			# basically, if the question_number is already in the database && settings.ONLY_NEW = True
+			# we want to stop all operations of the scraper
+			# if settings.ONLY_NEW = False, the loop continues digging for more questions
+			else:
+				continue # executed when inner-for-loop executes without breaking
+
+			break # if else-clause is not triggered, i.e. in case of breaking out of innerloop
+
+		connection.close()
