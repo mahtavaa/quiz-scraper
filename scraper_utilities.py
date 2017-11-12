@@ -307,10 +307,11 @@ def find_question(questionrow, question_number):
 
 	<div id="vragenrij_81790">
 		<div class="vragenrij">
-			<span>
+			<div style>
 				<a href="tags/cycling">cycling</a>
 				<a href="tags/sporty">sporty</a>
-			</span>
+			</div>
+			<div style="clear:both;"></div>
 			We zijn op zoek naar een de beste wielrenner ter wereld...
 		</div>
 	</div>
@@ -332,7 +333,7 @@ def find_question(questionrow, question_number):
 		
 		if len(questionrow.find_all('a', {'id': tag_regex})) > 0:
 			#if there are tags available, apply contents[1]
-			question_text = question_div.contents[1].strip()
+			question_text = question_div.contents[2].strip()
 		else:
 			#if there is no tag, it is directly under the div, so contents[0]
 			question_text = question_div.contents[0].strip()
