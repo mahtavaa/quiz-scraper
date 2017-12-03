@@ -11,3 +11,5 @@
 012 anki_exporter: add argparse interface
 013 anki_exporter: check for input -> raise error when category does not exist
 014 import statements @main_scraper = ugly af
+015 add extractor for early music questions (which do not only have youtube-embed but also audio fragment)
+016 compute category_dict with a valid session (otherwise 'foto' is not included in the dictionary)
